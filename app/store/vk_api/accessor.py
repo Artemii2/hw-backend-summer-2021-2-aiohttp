@@ -26,11 +26,15 @@ class VkApiAccessor(BaseAccessor):
         # TODO: добавить создание aiohttp ClientSession,
         #  получить данные о long poll сервере с помощью метода groups.getLongPollServer
         #  вызвать метод start у Poller
-        raise NotImplementedError
+        self.session=ClientSession()
+        await self._get_long_poll_service()
+        self.poller=Poller(app.store)
+        await self.poller.start()    
 
     async def disconnect(self, app: "Application"):
         # TODO: закрыть сессию и завершить поллер
-        raise NotImplementedError
+        await self.session.close()
+        await self.poller.stop()
 
     @staticmethod
     def _build_query(host: str, method: str, params: dict) -> str:
@@ -38,10 +42,19 @@ class VkApiAccessor(BaseAccessor):
         return f"{urljoin(host, method)}?{urlencode(params)}"
 
     async def _get_long_poll_service(self):
-        raise NotImplementedError
+        async with self.session.get(VkApiAccessor._build_query("https://api.vk.com","method/groups.getLongPollServer",{"group_id":"229832073","access_token":"vk1.a.V6AdfKv34XZ1Kn5u5kxQS2lXO310gJsAfsm5sD9bKc-fY8oJHhGmQMnVauXSDg6zMnStDlYq94TVELYLKLR_8T8Gr7mq1KMleIu-xEFwadc1inoDXX5v-69FYQMR3FSLMpL1OO2GbMa1myJ_2SS0rFrUIWziXwM6Pm7Wkg-83WEoKexNIi5NpPCSjc6ez-6X_PNMJ_6QasvO17n3CZxCYw"})) as resp: 
+            data=await resp.json()
+            data=data["response"]
+            self.key=data["key"]
+            self.server=data["server"]
+            self.ts=data["ts"]
 
     async def poll(self):
-        raise NotImplementedError
+        q=self._build_query(self.server,"",{"act":"a_check","key":self.key,"ts":self.ts,"wait":25})
+        async with self.session.get(q) as resp:
+            data=await resp.json()
+            self.ts=data["ts"]
+            return data
 
     async def send_message(self, message: Message) -> None:
-        raise NotImplementedError
+        print(message)

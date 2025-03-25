@@ -25,3 +25,5 @@ pluggy==1.4.0
 pycparser==2.21
 webargs==8.4.0
 yarl==1.9.4
+
+bcrypt==4.3.0
